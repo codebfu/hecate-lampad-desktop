@@ -7,17 +7,24 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (e.g. v1.0.0)
+        required: true
+        default: v1.0.0
 
 env:
   HECATE_REPO_GITHUB: codebfu/hecate-repo
   HECATE_REPO_REF: master
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 permissions:
   contents: read
 
 jobs:
   build:
-    if: startsWith(github.event.release.tag_name, 'v')
+    if: startsWith(github.event.release.tag_name || inputs.tag, 'v')
     strategy:
       fail-fast: false
       matrix:
@@ -33,12 +40,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Resolve version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+        run: echo "VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
         env:
-          GITHUB_REF_NAME: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master pin
@@ -86,7 +93,7 @@ jobs:
 
   publish:
     needs: build
-    if: startsWith(github.event.release.tag_name, 'v')
+    if: startsWith(github.event.release.tag_name || inputs.tag, 'v')
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -109,12 +116,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Resolve version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+        run: echo "VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
         env:
-          GITHUB_REF_NAME: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
 
       - name: Download installer
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v8.0.1
