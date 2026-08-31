@@ -1,0 +1,49 @@
+#!/bin/bash
+# postinstall for hecate-lampad-desktop component package.
+set -uo pipefail
+
+POSTLOG="/tmp/hecate-lampad-desktop-postinstall.log"
+HELPER="/usr/local/bin/hecate-lampad-desktop"
+PLIST="/Library/LaunchAgents/com.hecate.lampad-desktop.plist"
+
+log() {
+  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $*" | tee -a "${POSTLOG}" >&2
+}
+
+if [ ! -x "${HELPER}" ]; then
+  log "error: missing ${HELPER}"
+  exit 1
+fi
+
+if [ ! -f "${PLIST}" ]; then
+  log "error: missing ${PLIST}"
+  exit 1
+fi
+chown root:wheel "${PLIST}" 2>/dev/null || true
+chmod 644 "${PLIST}" 2>/dev/null || true
+
+# System LaunchAgent: load for the console GUI user when logged in.
+console_user="$(stat -f '%Su' /dev/console 2>/dev/null || true)"
+if [ -n "${console_user}" ] && [ "${console_user}" != "root" ] && [ "${console_user}" != "loginwindow" ]; then
+  uid="$(id -u "${console_user}" 2>/dev/null || true)"
+  if [ -n "${uid}" ]; then
+    # Request TCC consent in the Aqua session before starting the long-running helper.
+    # launchctl asuser keeps dialogs attached to the logged-in GUI user.
+    log "requesting desktop permissions for ${console_user} (uid ${uid})"
+    launchctl asuser "${uid}" sudo -u "${console_user}" \
+      "${HELPER}" request-permissions >>"${POSTLOG}" 2>&1 \
+      || log "warning: request-permissions exited non-zero (see ${POSTLOG})"
+
+    launchctl bootout "gui/${uid}/com.hecate.lampad-desktop" >>"${POSTLOG}" 2>&1 || true
+    if ! launchctl bootstrap "gui/${uid}" "${PLIST}" >>"${POSTLOG}" 2>&1; then
+      log "warning: launchctl bootstrap gui/${uid} failed (helper still installed; retry at next login)"
+    else
+      log "LaunchAgent loaded for gui/${uid}"
+    fi
+  fi
+else
+  log "no console GUI user; permission prompts and LaunchAgent deferred until next login"
+fi
+
+log "postinstall finished"
+exit 0

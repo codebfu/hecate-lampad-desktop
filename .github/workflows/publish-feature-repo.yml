@@ -1,0 +1,176 @@
+# Copyright (C) 2026 Gaultier HUBERT
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Release (Feature repo)
+
+on:
+  release:
+    types:
+      - published
+
+env:
+  HECATE_REPO_GITHUB: codebfu/hecate-repo
+  HECATE_REPO_REF: master
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: startsWith(github.event.release.tag_name, 'v')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runs-on: ubuntu-latest
+          - platform: windows
+            runs-on: ubuntu-latest
+          - platform: macos
+            runs-on: macos-latest
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Resolve version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+        env:
+          GITHUB_REF_NAME: ${{ github.event.release.tag_name }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master pin
+        with:
+          toolchain: stable
+          targets: ${{ matrix.platform == 'windows' && 'x86_64-pc-windows-gnu' || '' }}
+
+      - name: Install Linux packaging tools
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev libxcb1-dev libxdo-dev
+
+      - name: Install Windows packaging tools
+        if: matrix.platform == 'windows'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 wixl msitools
+
+      - name: Build Linux .deb
+        if: matrix.platform == 'linux'
+        run: |
+          export VERSION="${VERSION}"
+          cargo build --release --locked
+          bash packaging/linux/build-deb.sh "${VERSION}" amd64 target/release/hecate-lampad-desktop dist
+
+      - name: Build Windows .msi
+        if: matrix.platform == 'windows'
+        run: |
+          export VERSION="${VERSION}"
+          bash packaging/windows/build-msi.sh
+
+      - name: Build macOS .pkg
+        if: matrix.platform == 'macos'
+        run: |
+          export VERSION="${VERSION}"
+          bash packaging/macos/build-pkg.sh
+
+      - name: Upload installer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: installer-${{ matrix.platform }}
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: startsWith(github.event.release.tag_name, 'v')
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - platform: linux
+            artifact_os: linux
+            artifact_arch: x86_64
+            installer_type: deb
+          - platform: windows
+            artifact_os: windows
+            artifact_arch: x86_64
+            installer_type: msi
+          - platform: macos
+            artifact_os: macos
+            artifact_arch: aarch64
+            installer_type: pkg
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Resolve version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+        env:
+          GITHUB_REF_NAME: ${{ github.event.release.tag_name }}
+
+      - name: Download installer
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v8.0.1
+        with:
+          name: installer-${{ matrix.platform }}
+          path: dist
+
+      - name: Checkout hecate-repo CLI
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.HECATE_REPO_GITHUB }}
+          ref: ${{ env.HECATE_REPO_REF }}
+          path: hecate-repo
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master pin
+        with:
+          toolchain: stable
+
+      - name: Install publish tools
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Build hecate-repo CLI
+        run: cargo build --release --locked --manifest-path hecate-repo/Cargo.toml
+
+      - name: Publish desktop helper to official feature repo (SFTP)
+        env:
+          VERSION: ${{ env.VERSION }}
+          HECATE_REPO_BIN: ${{ github.workspace }}/hecate-repo/target/release/hecate-repo
+          HECATE_REPO_SIGNING_KEY_B64: ${{ secrets.hecate_REPO_SIGNING_KEY_B64 }}
+          HECATE_REPO_FTP_HOST: ${{ vars.hecate_REPO_FTP_HOST }}
+          HECATE_REPO_FTP_USER: ${{ secrets.hecate_REPO_FTP_USER }}
+          HECATE_REPO_FTP_PASSWORD: ${{ secrets.hecate_REPO_FTP_PASSWORD }}
+          HECATE_REPO_FTP_REMOTE_DIR: ${{ vars.hecate_REPO_FTP_REMOTE_DIR }}
+          HECATE_REPO_FTP_PORT: ${{ vars.hecate_REPO_FTP_PORT }}
+          HECATE_REPO_FTP_PROTOCOL: ${{ vars.hecate_REPO_FTP_PROTOCOL }}
+        run: |
+          platform="${{ matrix.platform }}"
+          artifact_os="${{ matrix.artifact_os }}"
+          artifact_arch="${{ matrix.artifact_arch }}"
+          case "${platform}" in
+            linux)
+              artifact="dist/hecate-lampad-desktop_${VERSION}_amd64.deb"
+              ;;
+            windows)
+              artifact="dist/hecate-lampad-desktop_${VERSION}_windows-amd64.msi"
+              ;;
+            macos)
+              artifact="$(ls dist/hecate-lampad-desktop_${VERSION}_macos-*.pkg | head -n 1)"
+              artifact_arch="$(basename "$artifact" | sed -n "s/.*_macos-\\(.*\\)\\.pkg$/\\1/p")"
+              ;;
+          esac
+          bash hecate-repo/ci/publish-to-repo-ftp.sh \
+            --feature-json features/desktop/feature.json \
+            --artifact "$artifact" \
+            --os "$artifact_os" \
+            --arch "$artifact_arch" \
+            --installer-type "${{ matrix.installer_type }}" \
+            --kind helper

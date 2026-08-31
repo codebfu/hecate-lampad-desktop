@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Hecate Lampad Desktop
+Comment=Hecate GUI helper for computer-use commands
+Exec=/usr/bin/hecate-lampad-desktop run
+X-GNOME-Autostart-enabled=true
+Terminal=false
+NoDisplay=true

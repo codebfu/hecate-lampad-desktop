@@ -1,0 +1,18 @@
+[Unit]
+Description=Hecate lampad desktop helper (user session)
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/hecate-lampad-desktop run
+Restart=always
+RestartSec=3
+# Prefer the session DISPLAY when imported; fall back for simple single-seat X11.
+Environment=DISPLAY=:0
+PassEnvironment=DISPLAY XAUTHORITY
+
+[Install]
+# graphical-session.target (not default.target): avoid starting under linger
+# before an X11 session exists.
+WantedBy=graphical-session.target

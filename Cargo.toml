@@ -1,0 +1,60 @@
+[package]
+name = "hecate-lampad-desktop"
+description = "Hecate lampad desktop helper (user-session KVM / computer-use)"
+version = "1.0.0"
+edition = "2024"
+rust-version = "1.93"
+license = "GPL-3.0-or-later"
+authors = ["Gaultier HUBERT"]
+
+[[bin]]
+name = "hecate-lampad-desktop"
+path = "src/main.rs"
+
+[dependencies]
+hecate-lampad-helper-base = { git = "https://github.com/codebfu/hecate-lampad-helper-base.git", rev = "9e401cb7f29ccdab070e5c488aa919dad729f7c2" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"
+thiserror = "2"
+uuid = { version = "1", features = ["serde", "v4"] }
+base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+enigo = "0.2"
+arboard = "3"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+clap = { version = "4", features = ["derive"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = { version = "0.13", features = ["allow-unsafe-code", "cursor"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Gdi",
+  "Win32_Graphics_Dxgi",
+  "Win32_Graphics_Dxgi_Common",
+  "Win32_Graphics_Direct3D",
+  "Win32_Graphics_Direct3D11",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_UI_Shell",
+  "Win32_System_Console",
+  "Win32_System_LibraryLoader",
+  "Win32_System_Threading",
+  "Win32_System_RemoteDesktop",
+  "Win32_System_StationsAndDesktops",
+  "Win32_Security",
+  "Win32_Security_Authorization",
+  "Win32_System_SystemServices",
+] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10"
+core-graphics = "0.24"
