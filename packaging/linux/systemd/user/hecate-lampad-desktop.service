@@ -5,7 +5,8 @@ PartOf=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/hecate-lampad-desktop run
+# Wrapper applies hecate-ipc via `sg` after usermod without requiring re-login.
+ExecStart=/usr/lib/hecate-lampad-desktop/run-helper.sh
 Restart=always
 RestartSec=3
 # Prefer the session DISPLAY when imported; fall back for simple single-seat X11.

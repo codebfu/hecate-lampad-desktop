@@ -22,17 +22,22 @@ DEST="$STAGE/$PKG"
 mkdir -p \
   "$DEST/DEBIAN" \
   "$DEST/usr/bin" \
+  "$DEST/usr/lib/hecate-lampad-desktop" \
   "$DEST/usr/lib/systemd/user" \
   "$DEST/etc/xdg/autostart"
 
 install -m 0755 "$BINARY" "$DEST/usr/bin/hecate-lampad-desktop"
+install -m 0755 "$ROOT/packaging/linux/scripts/run-helper.sh" \
+  "$DEST/usr/lib/hecate-lampad-desktop/run-helper.sh"
+install -m 0755 "$ROOT/packaging/linux/scripts/activate-for-sessions.sh" \
+  "$DEST/usr/lib/hecate-lampad-desktop/activate-for-sessions.sh"
 install -m 0644 "$ROOT/packaging/linux/systemd/user/hecate-lampad-desktop.service" \
   "$DEST/usr/lib/systemd/user/hecate-lampad-desktop.service"
 install -m 0644 "$ROOT/packaging/linux/autostart/hecate-lampad-desktop.desktop" \
   "$DEST/etc/xdg/autostart/hecate-lampad-desktop.desktop"
 
 # Package names (not SONAMEs): libxfixes3 ships libXfixes.so.6; libxdo3 ships libxdo.so.3.
-# Do not use SONAME-derived names like libxfix6 — they are not installable and break apt
+# Do not use SONAME-derived names like libxfixes6 — they are not installable and break apt
 # coexistence with other packages (e.g. qemu-guest-agent).
 cat >"$DEST/DEBIAN/control" <<EOF
 Package: hecate-lampad-desktop
@@ -68,15 +73,11 @@ fi
 if command -v systemctl >/dev/null 2>&1; then
   systemctl daemon-reload >/dev/null 2>&1 || true
 fi
-cat <<'MSG'
-Enable in each graphical user session (after login):
-  systemctl --user enable --now hecate-lampad-desktop
-
-Add each GUI user to the hecate-ipc group so the helper can bind desktop.sock:
-  usermod -a -G hecate-ipc <username>
-
-Requires hecate-lampad agent (creates /run/hecate-lampad for desktop.sock).
-MSG
+# Activate like macOS/Windows packaging: group membership + start in live GUI
+# sessions. Script always exits 0 so a missing session does not fail dpkg.
+if [ -x /usr/lib/hecate-lampad-desktop/activate-for-sessions.sh ]; then
+  /usr/lib/hecate-lampad-desktop/activate-for-sessions.sh || true
+fi
 EOF
 chmod 0755 "$DEST/DEBIAN/postinst"
 
