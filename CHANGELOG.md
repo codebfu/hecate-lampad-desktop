@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.5 — 2026-09-22
+
+- Fix IPC path unit: drop `PathChanged` (chgrp/chmod retriggered it into `unit-start-limit-hit`).
+
 ## 1.0.4 — 2026-09-22
 
 - Add systemd path unit (`hecate-lampad-desktop-ipc-fix`) so root re-applies `chgrp hecate-ipc` whenever `desktop.sock` is created or replaced (survives helper restart / agent update).

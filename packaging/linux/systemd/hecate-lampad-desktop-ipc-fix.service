@@ -6,3 +6,6 @@ After=hecate-lampad.service
 [Service]
 Type=oneshot
 ExecStart=/usr/lib/hecate-lampad-desktop/fix-ipc-perms.sh
+# Allow a few retries if the helper recreates the sock during install.
+StartLimitIntervalSec=30
+StartLimitBurst=10

@@ -3,8 +3,9 @@ Description=Watch hecate-lampad desktop IPC socket for group repair
 Documentation=https://github.com/codebfu/hecate-lampad-desktop
 
 [Path]
+# PathExists only: PathChanged also fires on chgrp/chmod (IN_ATTRIB) and
+# rate-limits the unit into unit-start-limit-hit before ownership sticks.
 PathExists=/run/hecate-lampad/desktop.sock
-PathChanged=/run/hecate-lampad/desktop.sock
 Unit=hecate-lampad-desktop-ipc-fix.service
 
 [Install]
