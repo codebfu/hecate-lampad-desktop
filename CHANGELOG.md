@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4 — 2026-09-22
+
+- Add systemd path unit (`hecate-lampad-desktop-ipc-fix`) so root re-applies `chgrp hecate-ipc` whenever `desktop.sock` is created or replaced (survives helper restart / agent update).
+- Drop useless `Depends: login` — modern Ubuntu no longer ships `sg` in that package.
+
 ## 1.0.3 — 2026-09-22
 
 - Depend on `login` (`sg`) so the helper can activate `hecate-ipc` without a re-login.

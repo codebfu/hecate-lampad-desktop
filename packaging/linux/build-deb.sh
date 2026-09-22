@@ -24,6 +24,7 @@ mkdir -p \
   "$DEST/usr/bin" \
   "$DEST/usr/lib/hecate-lampad-desktop" \
   "$DEST/usr/lib/systemd/user" \
+  "$DEST/lib/systemd/system" \
   "$DEST/etc/xdg/autostart"
 
 install -m 0755 "$BINARY" "$DEST/usr/bin/hecate-lampad-desktop"
@@ -31,15 +32,22 @@ install -m 0755 "$ROOT/packaging/linux/scripts/run-helper.sh" \
   "$DEST/usr/lib/hecate-lampad-desktop/run-helper.sh"
 install -m 0755 "$ROOT/packaging/linux/scripts/activate-for-sessions.sh" \
   "$DEST/usr/lib/hecate-lampad-desktop/activate-for-sessions.sh"
+install -m 0755 "$ROOT/packaging/linux/scripts/fix-ipc-perms.sh" \
+  "$DEST/usr/lib/hecate-lampad-desktop/fix-ipc-perms.sh"
 install -m 0644 "$ROOT/packaging/linux/systemd/user/hecate-lampad-desktop.service" \
   "$DEST/usr/lib/systemd/user/hecate-lampad-desktop.service"
+install -m 0644 "$ROOT/packaging/linux/systemd/hecate-lampad-desktop-ipc-fix.path" \
+  "$DEST/lib/systemd/system/hecate-lampad-desktop-ipc-fix.path"
+install -m 0644 "$ROOT/packaging/linux/systemd/hecate-lampad-desktop-ipc-fix.service" \
+  "$DEST/lib/systemd/system/hecate-lampad-desktop-ipc-fix.service"
 install -m 0644 "$ROOT/packaging/linux/autostart/hecate-lampad-desktop.desktop" \
   "$DEST/etc/xdg/autostart/hecate-lampad-desktop.desktop"
 
 # Package names (not SONAMEs): libxfixes3 ships libXfixes.so.6; libxdo3 ships libxdo.so.3.
 # Do not use SONAME-derived names like libxfixes6 — they are not installable and break apt
 # coexistence with other packages (e.g. qemu-guest-agent).
-# Depends on `login` for /usr/bin/sg (activates hecate-ipc without re-login).
+# Note: modern Ubuntu `login` no longer ships `sg`; IPC group is repaired by the
+# system path unit + agent-side chgrp instead.
 cat >"$DEST/DEBIAN/control" <<EOF
 Package: hecate-lampad-desktop
 Version: ${VERSION}
@@ -47,7 +55,7 @@ Section: utils
 Priority: optional
 Architecture: ${ARCH}
 Maintainer: Hecate Contributors
-Depends: libx11-6, libxfixes3, libxdo3, login
+Depends: libx11-6, libxfixes3, libxdo3
 Recommends: hecate-lampad
 Enhances: hecate-lampad
 Description: Hecate lampad desktop helper (user-session GUI control)
@@ -84,6 +92,11 @@ POL
 fi
 if command -v systemctl >/dev/null 2>&1; then
   systemctl daemon-reload >/dev/null 2>&1 || true
+  # Root path watcher: chgrp sock/token whenever the helper recreates them.
+  systemctl enable --now hecate-lampad-desktop-ipc-fix.path >/dev/null 2>&1 || true
+  if [ -x /usr/lib/hecate-lampad-desktop/fix-ipc-perms.sh ]; then
+    /usr/lib/hecate-lampad-desktop/fix-ipc-perms.sh || true
+  fi
 fi
 # Activate like macOS/Windows packaging: group membership + start in live GUI
 # sessions. Script always exits 0 so a missing session does not fail dpkg.
@@ -92,6 +105,17 @@ if [ -x /usr/lib/hecate-lampad-desktop/activate-for-sessions.sh ]; then
 fi
 EOF
 chmod 0755 "$DEST/DEBIAN/postinst"
+
+cat >"$DEST/DEBIAN/prerm" <<'EOF'
+#!/bin/sh
+set -e
+if [ "$1" = remove ] || [ "$1" = upgrade ] || [ "$1" = deconfigure ]; then
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl disable --now hecate-lampad-desktop-ipc-fix.path >/dev/null 2>&1 || true
+  fi
+fi
+EOF
+chmod 0755 "$DEST/DEBIAN/prerm"
 
 mkdir -p "$OUTDIR"
 dpkg-deb --build "$DEST" "$OUTDIR/${PKG}.deb"

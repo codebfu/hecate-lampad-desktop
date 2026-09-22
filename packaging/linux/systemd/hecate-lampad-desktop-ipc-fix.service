@@ -1,0 +1,8 @@
+[Unit]
+Description=Fix hecate-lampad desktop IPC socket/token group
+Documentation=https://github.com/codebfu/hecate-lampad-desktop
+After=hecate-lampad.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/hecate-lampad-desktop/fix-ipc-perms.sh
