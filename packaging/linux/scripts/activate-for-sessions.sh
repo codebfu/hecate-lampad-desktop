@@ -143,6 +143,20 @@ enable_and_start_for_user() {
   else
     log "warning: could not start ${UNIT} for ${user} (will rely on autostart at next login)"
   fi
+
+  # Helper may lack hecate-ipc in its credential token (no sg / no re-login).
+  # Root can still fix sock/token group so the agent service can connect.
+  i=0
+  while [ "${i}" -lt 20 ]; do
+    if [ -S "${RUNTIME_PARENT}/desktop.sock" ] && [ -f "${RUNTIME_PARENT}/ipc.token" ]; then
+      chgrp hecate-ipc "${RUNTIME_PARENT}/desktop.sock" "${RUNTIME_PARENT}/ipc.token" 2>/dev/null || true
+      chmod 0660 "${RUNTIME_PARENT}/desktop.sock" 2>/dev/null || true
+      chmod 0640 "${RUNTIME_PARENT}/ipc.token" 2>/dev/null || true
+      break
+    fi
+    i=$((i + 1))
+    sleep 0.25 2>/dev/null || sleep 1
+  done
 }
 
 activate_loginctl_sessions() {

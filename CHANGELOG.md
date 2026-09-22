@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3 — 2026-09-22
+
+- Depend on `login` (`sg`) so the helper can activate `hecate-ipc` without a re-login.
+- After starting the user unit, force `chgrp hecate-ipc` on `desktop.sock` / `ipc.token` so the agent can connect even when `sg` is missing.
+
 ## 1.0.2 — 2026-09-22
 
 - Fix Linux postinst: stop forcing `/etc/hecate-lampad` to `root:root` `0750`, which made the agent unable to read `config.toml` after `helper.install`.

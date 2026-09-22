@@ -39,6 +39,7 @@ install -m 0644 "$ROOT/packaging/linux/autostart/hecate-lampad-desktop.desktop" 
 # Package names (not SONAMEs): libxfixes3 ships libXfixes.so.6; libxdo3 ships libxdo.so.3.
 # Do not use SONAME-derived names like libxfixes6 — they are not installable and break apt
 # coexistence with other packages (e.g. qemu-guest-agent).
+# Depends on `login` for /usr/bin/sg (activates hecate-ipc without re-login).
 cat >"$DEST/DEBIAN/control" <<EOF
 Package: hecate-lampad-desktop
 Version: ${VERSION}
@@ -46,7 +47,7 @@ Section: utils
 Priority: optional
 Architecture: ${ARCH}
 Maintainer: Hecate Contributors
-Depends: libx11-6, libxfixes3, libxdo3
+Depends: libx11-6, libxfixes3, libxdo3, login
 Recommends: hecate-lampad
 Enhances: hecate-lampad
 Description: Hecate lampad desktop helper (user-session GUI control)
