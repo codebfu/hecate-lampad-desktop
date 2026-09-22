@@ -59,7 +59,18 @@ set -e
 if ! getent group hecate-ipc >/dev/null 2>&1; then
   groupadd --system hecate-ipc 2>/dev/null || true
 fi
-install -d -m 0750 -o root -g root /etc/hecate-lampad 2>/dev/null || true
+# Shared agent/helper config dir. Never force root:root — that makes mode 0750
+# unreadable to User=hecate-lampad (systemd) and the agent reports "config not found".
+if [ ! -d /etc/hecate-lampad ]; then
+  if id hecate-lampad >/dev/null 2>&1 && getent group hecate-ipc >/dev/null 2>&1; then
+    install -d -m 0750 -o hecate-lampad -g hecate-ipc /etc/hecate-lampad
+  else
+    install -d -m 0755 /etc/hecate-lampad
+  fi
+elif id hecate-lampad >/dev/null 2>&1 && getent group hecate-ipc >/dev/null 2>&1; then
+  chown hecate-lampad:hecate-ipc /etc/hecate-lampad 2>/dev/null || true
+  chmod 0750 /etc/hecate-lampad 2>/dev/null || true
+fi
 if [ ! -f /etc/hecate-lampad/desktop-helper.toml ]; then
   cat >/etc/hecate-lampad/desktop-helper.toml <<'POL'
 # Root-owned helper policy. Dangerous env keys and elevation wrappers are

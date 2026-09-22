@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2 — 2026-09-22
+
+- Fix Linux postinst: stop forcing `/etc/hecate-lampad` to `root:root` `0750`, which made the agent unable to read `config.toml` after `helper.install`.
+
 ## 1.0.1 — 2026-09-21
 
 - Linux install (`helper.install` / `.deb` postinst) now grants `hecate-ipc` and starts the user-session helper in live GUI sessions (aligned with macOS/Windows).
