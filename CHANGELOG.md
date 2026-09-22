@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.8 — 2026-09-22
+
+- If `desktop-helper.toml` is missing, use permissive defaults (`*`) instead of empty deny-all allowlists. The agent already enforces the signed task `shell_policy` before IPC; empty-on-missing broke `app.launch` (and would break `shell.run`) on Windows/macOS hosts that never ship that file. Untrusted or invalid policy files still deny-by-default.
+
 ## 1.0.7 — 2026-09-22
 
 - Re-validate `app.launch` against the local helper shell allowlists before launching (same policy file as `shell.run`; defense in depth for the §11 sandbox escape).

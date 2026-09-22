@@ -193,15 +193,15 @@ fn load_from_path(path: &Path) -> HelperShellPolicy {
             }
         },
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            tracing::warn!(
+            // Missing file is not a hard lockdown: the agent already enforced the
+            // signed task shell_policy before IPC. Match packaging defaults (`*`)
+            // and HelperShellPolicy::default so app.launch / shell.run work on
+            // hosts that never received desktop-helper.toml (Windows/macOS).
+            tracing::info!(
                 path = %path.display(),
-                "desktop helper policy missing; using deny-by-default empty allowlists"
+                "desktop helper policy missing; using permissive defaults (agent policy still enforced)"
             );
-            HelperShellPolicy {
-                allowed_binaries: Vec::new(),
-                allowed_cwd: Vec::new(),
-                allowed_env: Vec::new(),
-            }
+            HelperShellPolicy::default()
         }
         Err(error) => {
             tracing::warn!(
