@@ -93,6 +93,8 @@ fi
 if command -v systemctl >/dev/null 2>&1; then
   systemctl daemon-reload >/dev/null 2>&1 || true
   # Root path watcher: chgrp sock/token whenever the helper recreates them.
+  systemctl reset-failed hecate-lampad-desktop-ipc-fix.path \
+    hecate-lampad-desktop-ipc-fix.service >/dev/null 2>&1 || true
   systemctl enable --now hecate-lampad-desktop-ipc-fix.path >/dev/null 2>&1 || true
   if [ -x /usr/lib/hecate-lampad-desktop/fix-ipc-perms.sh ]; then
     /usr/lib/hecate-lampad-desktop/fix-ipc-perms.sh || true

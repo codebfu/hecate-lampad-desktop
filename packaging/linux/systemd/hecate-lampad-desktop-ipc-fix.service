@@ -5,7 +5,8 @@ After=hecate-lampad.service
 
 [Service]
 Type=oneshot
+# RemainAfterExit stops PathExists from re-starting the oneshot in a tight
+# loop while the socket still exists (otherwise → start-limit-hit).
+RemainAfterExit=yes
 ExecStart=/usr/lib/hecate-lampad-desktop/fix-ipc-perms.sh
-# Allow a few retries if the helper recreates the sock during install.
-StartLimitIntervalSec=30
-StartLimitBurst=10
+ExecStop=/bin/true

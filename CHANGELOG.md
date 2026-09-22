@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.6 — 2026-09-22
+
+- Fix IPC path unit oneshot: set `RemainAfterExit=yes` so `PathExists` does not restart the fix service in a tight loop.
+
 ## 1.0.5 — 2026-09-22
 
 - Fix IPC path unit: drop `PathChanged` (chgrp/chmod retriggered it into `unit-start-limit-hit`).
