@@ -280,7 +280,13 @@ fn dispatch(
         "key" => call_json(backend, |b| b.key(&request.params)),
         "clipboard.get" => call_capture(backend, |b| b.clipboard_get(&request.params)),
         "clipboard.set" => call_json(backend, |b| b.clipboard_set(&request.params)),
-        "app.launch" => call_json(backend, |b| b.launch_app(&request.params)),
+        "app.launch" => {
+            if let Err(error) = crate::helper_policy::validate_app_launch_params(&request.params)
+            {
+                return error_response(&request.id, "permission_denied", &error.to_string());
+            }
+            call_json(backend, |b| b.launch_app(&request.params))
+        }
         "window.list" => call_json(backend, |b| b.list_windows(&request.params)),
         "window.focus" => call_json(backend, |b| b.focus_window(&request.params)),
         "window.wait" => call_json(backend, |b| b.wait_window(&request.params)),

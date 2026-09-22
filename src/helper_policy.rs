@@ -231,3 +231,25 @@ pub fn validate_shell_params(
     check_env_policy(env, &policy.allowed_env)?;
     Ok(())
 }
+
+/// Re-validate `app.launch` against the local helper shell policy (same allowlists
+/// as `shell.run`). `cwd` is checked only when provided.
+pub fn validate_app_launch_params(params: &serde_json::Value) -> Result<(), PolicyError> {
+    let app = params
+        .get("app")
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+        .ok_or(PolicyError::EmptyArgv)?;
+    let mut argv = vec![app.to_string()];
+    if let Some(arr) = params.get("args").and_then(|v| v.as_array()) {
+        for item in arr {
+            let Some(arg) = item.as_str() else {
+                continue;
+            };
+            argv.push(arg.to_string());
+        }
+    }
+    let cwd = params.get("cwd").and_then(|v| v.as_str());
+    validate_shell_params(&argv, cwd, &HashMap::new())
+}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.7 — 2026-09-22
+
+- Re-validate `app.launch` against the local helper shell allowlists before launching (same policy file as `shell.run`; defense in depth for the §11 sandbox escape).
+
 ## 1.0.6 — 2026-09-22
 
 - Fix IPC path unit oneshot: set `RemainAfterExit=yes` so `PathExists` does not restart the fix service in a tight loop.
