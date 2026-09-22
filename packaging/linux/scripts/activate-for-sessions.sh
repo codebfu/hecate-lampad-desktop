@@ -157,6 +157,20 @@ enable_and_start_for_user() {
     i=$((i + 1))
     sleep 0.25 2>/dev/null || sleep 1
   done
+
+  # Re-arm / run the system path oneshot. Older packages used RemainAfterExit on
+  # PathExists(desktop.sock), which skipped chgrp after fast sock recreate.
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl stop hecate-lampad-desktop-ipc-fix.service >/dev/null 2>&1 || true
+  fi
+  if [ -x /usr/lib/hecate-lampad-desktop/fix-ipc-perms.sh ]; then
+    /usr/lib/hecate-lampad-desktop/fix-ipc-perms.sh || true
+  fi
+  # Nudge PathChanged watcher for this and future helper recreates.
+  : > "${RUNTIME_PARENT}/desktop.ipc-fix" 2>/dev/null || true
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl start hecate-lampad-desktop-ipc-fix.service >/dev/null 2>&1 || true
+  fi
 }
 
 activate_loginctl_sessions() {

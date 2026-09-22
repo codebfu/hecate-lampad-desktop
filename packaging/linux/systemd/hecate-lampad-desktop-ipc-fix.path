@@ -1,11 +1,14 @@
 [Unit]
-Description=Watch hecate-lampad desktop IPC socket for group repair
+Description=Watch hecate-lampad desktop IPC ready stamp for group repair
 Documentation=https://github.com/codebfu/hecate-lampad-desktop
 
 [Path]
-# PathExists only: PathChanged also fires on chgrp/chmod (IN_ATTRIB) and
-# rate-limits the unit into unit-start-limit-hit before ownership sticks.
-PathExists=/run/hecate-lampad/desktop.sock
+# Stamp written by the helper after each sock/token recreate. PathChanged is
+# edge-triggered and does not re-fire when fix-ipc-perms.sh chgrps the socket
+# (unlike PathChanged on desktop.sock itself, which raced into start-limit).
+# Avoid PathExists+RemainAfterExit on the socket: fast unlink/bind is often
+# missed, leaving sock/token without group hecate-ipc → sticky gui:none.
+PathChanged=/run/hecate-lampad/desktop.ipc-fix
 Unit=hecate-lampad-desktop-ipc-fix.service
 
 [Install]

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.9 — 2026-09-22
+
+- Fix sticky `gui:none` after helper install/restart on Linux: signal `desktop.ipc-fix` after each sock/token recreate and drive `chgrp hecate-ipc` via PathChanged (drop PathExists+RemainAfterExit on the socket, which missed fast unlink/bind cycles). Activate/postinst also force a fresh fix-oneshot run.
+
 ## 1.0.8 — 2026-09-22
 
 - If `desktop-helper.toml` is missing, use permissive defaults (`*`) instead of empty deny-all allowlists. The agent already enforces the signed task `shell_policy` before IPC; empty-on-missing broke `app.launch` (and would break `shell.run`) on Windows/macOS hosts that never ship that file. Untrusted or invalid policy files still deny-by-default.

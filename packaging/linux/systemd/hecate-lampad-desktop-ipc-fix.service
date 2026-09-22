@@ -5,8 +5,7 @@ After=hecate-lampad.service
 
 [Service]
 Type=oneshot
-# RemainAfterExit stops PathExists from re-starting the oneshot in a tight
-# loop while the socket still exists (otherwise → start-limit-hit).
-RemainAfterExit=yes
+# No RemainAfterExit: PathChanged on desktop.ipc-fix is edge-triggered, so
+# each helper recreate must re-run ExecStart. RemainAfterExit previously
+# prevented re-chgrp after sock recreate → sticky gui:none.
 ExecStart=/usr/lib/hecate-lampad-desktop/fix-ipc-perms.sh
-ExecStop=/bin/true

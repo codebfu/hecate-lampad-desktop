@@ -33,6 +33,7 @@ pub async fn run(socket_path: PathBuf) -> anyhow::Result<()> {
         }
         let listener = UnixListener::bind(&socket_path)?;
         set_ipc_socket_permissions(&socket_path)?;
+        signal_ipc_ready_for_group_fix(&socket_path);
         info!(path = %socket_path.display(), "listening for agent IPC");
         spawn_socket_path_watchdog(socket_path.clone());
         loop {
@@ -146,6 +147,25 @@ fn spawn_socket_path_watchdog(socket_path: PathBuf) {
             }
         }
     });
+}
+
+/// Notify the system path unit so root can `chgrp hecate-ipc` after we recreate
+/// sock/token. PathExists+RemainAfterExit on the socket itself misses fast
+/// unlink/bind cycles; a dedicated stamp is edge-triggered via PathChanged.
+#[cfg(unix)]
+fn signal_ipc_ready_for_group_fix(socket_path: &std::path::Path) {
+    let Some(parent) = socket_path.parent() else {
+        return;
+    };
+    let stamp = parent.join("desktop.ipc-fix");
+    match std::fs::write(&stamp, b"ready\n") {
+        Ok(()) => info!(path = %stamp.display(), "signaled IPC ready for group repair"),
+        Err(error) => warn!(
+            path = %stamp.display(),
+            %error,
+            "failed to signal IPC ready for group repair"
+        ),
+    }
 }
 
 /// Reject peers that are neither root, the agent service user, nor our own uid.
