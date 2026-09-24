@@ -1,7 +1,7 @@
 [package]
 name = "hecate-lampad-desktop"
 description = "Hecate lampad desktop helper (user-session KVM / computer-use)"
-version = "1.0.9"
+version = "1.0.10"
 edition = "2024"
 rust-version = "1.93"
 license = "GPL-3.0-or-later"
@@ -12,7 +12,7 @@ name = "hecate-lampad-desktop"
 path = "src/main.rs"
 
 [dependencies]
-hecate-lampad-helper-base = { git = "https://github.com/codebfu/hecate-lampad-helper-base.git", rev = "9e401cb7f29ccdab070e5c488aa919dad729f7c2" }
+hecate-lampad-helper-base = { git = "https://github.com/codebfu/hecate-lampad-helper-base.git", rev = "a993e1060ae88dad8dc144b59d820341ae881172" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "0.8"
