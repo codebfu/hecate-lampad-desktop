@@ -41,6 +41,35 @@ jobs:
             dist/*.deb
           fail_on_unmatched_files: true
 
+  linux-rpm:
+    if: startsWith(github.event.release.tag_name, 'v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master pin
+        with:
+          toolchain: stable
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm libxcb1-dev libxdo-dev
+      - name: Build release binary and .rpm
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="${VERSION#v}"
+          export VERSION
+          cargo build --release --locked
+          bash packaging/linux/build-rpm.sh "${VERSION}" x86_64 target/release/hecate-lampad-desktop dist
+      - name: Upload assets
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        with:
+          files: |
+            dist/*.rpm
+          fail_on_unmatched_files: true
+
   windows-msi:
     if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
